@@ -1,0 +1,208 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r}
+library(ggplot2)
+library(tidyr)
+library(knitr)
+library(lme4)
+library(lmerTest)
+library(car)
+library(dplyr)
+
+
+options(contrasts = c("contr.sum", "contr.poly"))
+
+
+
+### download indiv datasets of students
+phenotesta = read.csv("~/Documents/Pitt Docs/Semester 3/iNaturalist/City_Family_Complete/Aster_PGH_CC_complete.csv")
+
+phenotestb = read.csv("~/Documents/Pitt Docs/Semester 3/iNaturalist/City_Family_Complete/Aster_PGH_edt_alex.csv")
+
+phenotestc = read.csv("~/Documents/Pitt Docs/Semester 3/iNaturalist/City_Family_Complete/Aster_PHG_EO_complete.csv")
+
+### full join student datasets
+phenotest = phenotesta %>%
+  full_join(phenotestb, by = c( "observer", "id", "observed_on", "user_id", "url", "image_url", "latitude", "longitude", "place_county_name", "place_state_name", "place_country_name", "scientific_name", "common_name", "taxon_family_name", "status", "Habitat_forest_open", "part_or_whole", "leaves", "flowers_or_buds", "open_flowers", "fruit", "ripe_fruit")) %>%
+  full_join(phenotestc, by =c(  "observer", "id", "observed_on", "user_id", "url", "image_url", "latitude", "longitude", "place_county_name", "place_state_name", "place_country_name", "scientific_name", "common_name", "taxon_family_name", "status", "Habitat_forest_open", "part_or_whole", "leaves", "flowers_or_buds", "open_flowers", "fruit", "ripe_fruit"))
+
+
+```
+
+
+
+```{r}
+## fixing two messed up urls
+
+phenotest$url[phenotest$id == 8020080] = "https://www.inaturalist.org/observations/8020080
+"
+
+phenotest$url[phenotest$id == 6759011] = "https://www.inaturalist.org/observations/6759011
+"
+```
+
+
+
+```{r}
+
+
+## summarize by the number "distinct" identifiers for each observation (1 = all scorers agree, 2 = 2 scorers in agreement and 1 disagreement, 3 = no scorers in agreement)
+phenotest2 = phenotest %>%
+  group_by(id, observed_on, url, scientific_name) %>%
+  summarise(agree_part_or_whole = n_distinct(part_or_whole), agree_leaves = n_distinct(leaves), agree_flowers_or_buds = n_distinct(flowers_or_buds),agree_open_flowers = n_distinct(open_flowers), agree_fruit = n_distinct(fruit), agree_ripe_fruit = n_distinct(ripe_fruit)) 
+
+## needed previously to find observation duplicates
+##phenotest2$id[duplicated(phenotest2$id)]
+
+
+```
+
+
+
+
+```{r}
+## create a long-form dataset
+
+phenotest2_long <- gather(phenotest2, phenophase, agreement, agree_part_or_whole:agree_ripe_fruit, factor_key=TRUE)
+
+
+
+
+```
+
+
+```{r}
+phenotest2_long$agreement = as.character(phenotest2_long$agreement)
+
+ggplot(data = phenotest2_long, aes(x = phenophase, y = agreement)) + geom_bin2d()
+
+
+ggplot(data = phenotest2_long, aes(x = phenophase, y = agreement)) + geom_bin2d() + facet_wrap(~scientific_name) 
+
+phenotest2_long$agreement = as.numeric(phenotest2_long$agreement)
+
+
+```
+
+
+
+```{r}
+
+
+
+table_pheno = phenotest2_long %>%
+  dplyr::group_by(phenophase, agreement) %>%
+  dplyr::summarise(n = n()) %>%
+  dplyr::mutate(freq = n / sum(n))
+table_pheno
+
+table_species = phenotest2_long %>%
+dplyr::group_by(scientific_name, agreement) %>%
+dplyr::summarise(n = n()) %>%
+dplyr::mutate(freq = n / sum(n))
+table_species
+ 
+
+
+```
+
+```{r}
+### just raw data- looking at score frequencies across groups
+theme_set(theme_classic())
+
+
+table_pheno$agreement = as.character(table_pheno$agreement)
+table_pheno$freq = as.numeric(table_pheno$freq)
+
+ggplot(data = table_pheno, aes(x = phenophase, y = freq, fill = agreement)) + geom_col() + scale_fill_brewer(palette = "RdPu")
+
+table_species$freq = as.numeric(table_species$freq)
+table_species$agreement = as.character(table_species$agreement)
+
+ggplot(data = table_species, aes(x = scientific_name, y = freq, fill = agreement)) + geom_col() + scale_fill_brewer(palette = "RdPu")
+
+```
+
+```{r}
+meangroup = phenotest2_long %>%
+  dplyr::group_by(scientific_name, phenophase) %>%
+  dplyr::summarise(meanagree = mean(agreement))
+
+```
+
+
+```{r}
+
+
+theme_set(theme_classic())
+
+ggplot(meangroup, aes(phenophase, scientific_name, fill = meanagree)) + geom_tile(color = "white") +
+  scale_fill_gradient(limits = c(1,2), low="#feebe2", high="#c51b8a")
+
+
+```
+
+
+
+
+
+## data analysis 
+```{r}
+library(car)
+
+phenotest2_long$agreement = as.numeric(phenotest2_long$agreement)
+
+
+## type 3 anova test for unbalanced data
+### NOT normally distributed - right skew 
+anovatest = aov(agreement ~ phenophase * scientific_name, data = phenotest2_long)
+Anova(anovatest, type = 3)
+### TukeyHSD(anovatest)
+
+
+## poisson test for count data?
+glmtest = glm(agreement ~ phenophase * scientific_name, data = phenotest2_long, family = "poisson")
+Anova(glmtest, type = 3)
+
+
+
+```
+
+
+
+
+```{r}
+## Centering data by species, since not significant in prev?
+
+phenotest2_long_sp = phenotest2_long %>%
+  group_by(scientific_name, phenophase) %>%
+  summarise(meanagree = mean(agreement))
+
+aovtest = aov(meanagree ~ phenophase, data = phenotest2_long_sp)
+anova(aovtest)
+TukeyHSD(aovtest)
+### after centering, only part or whole category is unique
+
+
+
+```
+
+
+## boxplot for data centered by species
+```{r}
+theme_set(theme_classic())
+
+ggplot(data = phenotest2_long_sp, aes(x = phenophase, y = meanagree)) + geom_boxplot() + scale_fill_brewer(palette = "RdPu")
+
+
+```
+
+
+
+
+
+
+
