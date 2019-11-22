@@ -1,5 +1,5 @@
 ---
-title: "Untitled"
+title: "Reeb Biostats final"
 output: html_document
 ---
 
@@ -67,6 +67,8 @@ phenotest2 = phenotest %>%
 ## create a long-form dataset
 
 phenotest2_long <- gather(phenotest2, phenophase, agreement, agree_part_or_whole:agree_ripe_fruit, factor_key=TRUE)
+
+## PROBELM: how do I filter "obvious no" observations out of the late phenology stages? (ie only some proportion of observations could be flowering, conditional on the presence of leaves)
 
 
 
@@ -149,6 +151,9 @@ ggplot(meangroup, aes(phenophase, scientific_name, fill = meanagree)) + geom_til
 
 
 
+
+
+
 ## data analysis 
 ```{r}
 library(car)
@@ -160,22 +165,26 @@ phenotest2_long$agreement = as.numeric(phenotest2_long$agreement)
 ### NOT normally distributed - right skew 
 anovatest = aov(agreement ~ phenophase * scientific_name, data = phenotest2_long)
 Anova(anovatest, type = 3)
-### TukeyHSD(anovatest)
+# TukeyHSD(anovatest)
+
+# both independently significant
+kruskaltest_pheno = kruskal.test(agreement ~ phenophase, data = phenotest2_long)
+kruskaltest_pheno
 
 
-## poisson test for count data?
-glmtest = glm(agreement ~ phenophase * scientific_name, data = phenotest2_long, family = "poisson")
-Anova(glmtest, type = 3)
-
-
+kruskaltest_species = kruskal.test(agreement ~ scientific_name, data = phenotest2_long)
+kruskaltest_species
 
 ```
 
 
 
 
+
+
+
 ```{r}
-## Centering data by species, since not significant in prev?
+## Centering data by species?
 
 phenotest2_long_sp = phenotest2_long %>%
   group_by(scientific_name, phenophase) %>%
@@ -201,6 +210,9 @@ ggplot(data = phenotest2_long_sp, aes(x = phenophase, y = meanagree)) + geom_box
 ```
 
 
+```{r}
+
+```
 
 
 
