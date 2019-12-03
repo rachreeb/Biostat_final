@@ -1,9 +1,11 @@
 ---
 title: "Reeb Biostats final"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
-```{r}
+```{r, results='hide', warning=FALSE, message=FALSE}
 library(ggplot2)
 library(tidyr)
 library(knitr)
@@ -34,7 +36,7 @@ phenotest = phenotesta %>%
 
 
 
-```{r}
+```{r, results='hide', , warning=FALSE}
 ## fixing two messed up urls
 
 phenotest$url[phenotest$id == 8020080] = "https://www.inaturalist.org/observations/8020080
@@ -46,7 +48,7 @@ phenotest$url[phenotest$id == 6759011] = "https://www.inaturalist.org/observatio
 
 
 
-```{r}
+```{r, results='hide', , warning=FALSE}
 
 
 ## summarize by the number "distinct" identifiers for each observation (1 = all scorers agree, 2 = 2 scorers in agreement and 1 disagreement, 3 = no scorers in agreement)
@@ -63,7 +65,7 @@ phenotest2 = phenotest %>%
 
 
 
-```{r}
+```{r, results='hide', , warning=FALSE}
 ## create a long-form dataset
 
 phenotest2_long <- gather(phenotest2, phenophase, agreement, agree_part_or_whole:agree_ripe_fruit, factor_key=TRUE)
@@ -76,86 +78,11 @@ phenotest2_long <- gather(phenotest2, phenophase, agreement, agree_part_or_whole
 ```
 
 
-```{r}
-phenotest2_long$agreement = as.character(phenotest2_long$agreement)
-
-ggplot(data = phenotest2_long, aes(x = phenophase, y = agreement)) + geom_bin2d()
-
-
-ggplot(data = phenotest2_long, aes(x = phenophase, y = agreement)) + geom_bin2d() + facet_wrap(~scientific_name) 
-
-phenotest2_long$agreement = as.numeric(phenotest2_long$agreement)
-
-
-```
 
 
 
-```{r}
-
-
-
-table_pheno = phenotest2_long %>%
-  dplyr::group_by(phenophase, agreement) %>%
-  dplyr::summarise(n = n()) %>%
-  dplyr::mutate(freq = n / sum(n))
-table_pheno
-
-table_species = phenotest2_long %>%
-dplyr::group_by(scientific_name, agreement) %>%
-dplyr::summarise(n = n()) %>%
-dplyr::mutate(freq = n / sum(n))
-table_species
- 
-
-
-```
-
-```{r}
-### just raw data- looking at score frequencies across groups
-theme_set(theme_classic())
-
-
-table_pheno$agreement = as.character(table_pheno$agreement)
-table_pheno$freq = as.numeric(table_pheno$freq)
-
-ggplot(data = table_pheno, aes(x = phenophase, y = freq, fill = agreement)) + geom_col() + scale_fill_brewer(palette = "RdPu")
-
-table_species$freq = as.numeric(table_species$freq)
-table_species$agreement = as.character(table_species$agreement)
-
-ggplot(data = table_species, aes(x = scientific_name, y = freq, fill = agreement)) + geom_col() + scale_fill_brewer(palette = "RdPu")
-
-```
-
-```{r}
-meangroup = phenotest2_long %>%
-  dplyr::group_by(scientific_name, phenophase) %>%
-  dplyr::summarise(meanagree = mean(agreement))
-
-```
-
-
-```{r}
-
-
-theme_set(theme_classic())
-
-ggplot(meangroup, aes(phenophase, scientific_name, fill = meanagree)) + geom_tile(color = "white") +
-  scale_fill_gradient(limits = c(1,2), low="#feebe2", high="#c51b8a")
-
-
-```
-
-
-
-
-
-
-
-
-## data analysis 
-```{r}
+## prelim data analysis 
+```{r, , results='hide', warning=FALSE, message=FALSE}
 library(car)
 
 phenotest2_long$agreement = as.numeric(phenotest2_long$agreement)
@@ -183,7 +110,7 @@ kruskaltest_species
 
 
 
-```{r}
+```{r, , results='hide', warning=FALSE, message=FALSE}
 ## Centering data by species?
 
 phenotest2_long_sp = phenotest2_long %>%
@@ -209,12 +136,76 @@ ggplot(data = phenotest2_long_sp, aes(x = phenophase, y = meanagree)) + geom_box
 
 ```
 
+## making new binomial dataset
+```{r}
+phenotest2_long$agreement = as.numeric(phenotest2_long$agreement)
+
+attach(phenotest2_long)
+
+phenotest2_long$disagree_binary[phenotest2_long$agreement >= 2] = 1
+phenotest2_long$disagree_binary[phenotest2_long$agreement <= 1] = 0
+
+detach(phenotest2_long)
+
+
+```
+
+# --------FINAL--------
+
+
+
+# final logistic regression test:
 
 ```{r}
+logtest = glm(disagree_binary ~ phenophase + scientific_name, data = phenotest2_long, family = binomial(link="logit"))
+summary(logtest)
+
+anova(logtest, test = "Chisq")
+### anova comparing this model to a null model finds that phenophase and species were significantly different
+
+
+```
+
+## final frequency table of binary agreements
+```{r}
+table_pheno = phenotest2_long %>%
+  dplyr::group_by(phenophase, disagree_binary) %>%
+  dplyr::summarise(n = n()) %>%
+  dplyr::mutate(freq = n / sum(n))
+table_pheno
+
+table_pheno2 = phenotest2_long %>%
+  dplyr::group_by(scientific_name, disagree_binary) %>%
+  dplyr::summarise(n = n()) %>%
+  dplyr::mutate(freq = n / sum(n))
+table_pheno2
+
+table_pheno3 = phenotest2_long %>%
+  dplyr::group_by(disagree_binary) %>%
+  dplyr::summarise(n = n()) %>%
+  dplyr::mutate(freq = n / sum(n))
+table_pheno3
+```
+
+# Final Figure
+
+```{r}
+meangroup = phenotest2_long %>%
+  dplyr::group_by(scientific_name, phenophase) %>%
+  dplyr::summarise(meanagree = mean(disagree_binary))
 
 ```
 
 
+```{r}
 
+
+theme_set(theme_classic())
+
+ggplot(meangroup, aes(phenophase, scientific_name, fill = meanagree)) + geom_tile(color = "white") +
+  scale_fill_gradient(limits = c(0,1), low="#feebe2", high="#c51b8a")
+
+
+```
 
 
