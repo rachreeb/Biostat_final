@@ -1,0 +1,44 @@
+
+Call:
+glm(formula = disagree_binary ~ phenophase + scientific_name, 
+    family = binomial(link = "logit"), data = phenotest2_long)
+
+Deviance Residuals: 
+    Min       1Q   Median       3Q      Max  
+-1.0435  -0.5942  -0.4442  -0.3116   2.7327  
+
+Coefficients:
+                  Estimate Std. Error z value Pr(>|z|)    
+(Intercept)       -1.95311    0.05195 -37.598  < 2e-16 ***
+phenophase1        1.01534    0.07915  12.828  < 2e-16 ***
+phenophase2        0.19619    0.09296   2.111 0.034805 *  
+phenophase3       -0.78457    0.12716  -6.170 6.83e-10 ***
+phenophase4        0.24436    0.09183   2.661 0.007789 ** 
+phenophase5       -0.13303    0.10191  -1.305 0.191777    
+scientific_name1   0.15634    0.13891   1.125 0.260383    
+scientific_name2  -0.23866    0.14552  -1.640 0.100999    
+scientific_name3   0.18194    0.21579   0.843 0.399150    
+scientific_name4   0.26180    0.17052   1.535 0.124697    
+scientific_name5   0.61433    0.13023   4.717 2.39e-06 ***
+scientific_name6   0.09057    0.13639   0.664 0.506646    
+scientific_name7   0.23127    0.15568   1.486 0.137410    
+scientific_name8   0.57432    0.22012   2.609 0.009077 ** 
+scientific_name9   0.07208    0.22723   0.317 0.751105    
+scientific_name10 -0.48175    0.30592  -1.575 0.115304    
+scientific_name11  0.11216    0.23861   0.470 0.638326    
+scientific_name12  0.34749    0.22794   1.524 0.127391    
+scientific_name13 -0.27942    0.16759  -1.667 0.095462 .  
+scientific_name14 -0.51667    0.25464  -2.029 0.042458 *  
+scientific_name15 -0.97205    0.17257  -5.633 1.77e-08 ***
+scientific_name16 -0.50924    0.14832  -3.433 0.000596 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 4022.5  on 5081  degrees of freedom
+Residual deviance: 3720.6  on 5060  degrees of freedom
+AIC: 3764.6
+
+Number of Fisher Scoring iterations: 5
+
