@@ -6,6 +6,7 @@ output:
 ---
 
 ```{r, results='hide', warning=FALSE, message=FALSE}
+library(httr)
 library(ggplot2)
 library(tidyr)
 library(knitr)
@@ -20,11 +21,16 @@ options(contrasts = c("contr.sum", "contr.poly"))
 
 
 ### download indiv datasets of students
-phenotesta = read.csv("~/Documents/Pitt Docs/Semester 3/iNaturalist/City_Family_Complete/Aster_PGH_CC_complete.csv")
+myfile = "https://raw.githubusercontent.com/rachreeb/Biostat_final/master/Aster_PGH_CC_complete.csv"
+phenotesta = read.csv(myfile)
 
-phenotestb = read.csv("~/Documents/Pitt Docs/Semester 3/iNaturalist/City_Family_Complete/Aster_PGH_edt_alex.csv")
+myfile2 = "https://raw.githubusercontent.com/rachreeb/Biostat_final/master/Aster_PGH_edt_alex.csv"
+phenotestb = read.csv(myfile2)
 
-phenotestc = read.csv("~/Documents/Pitt Docs/Semester 3/iNaturalist/City_Family_Complete/Aster_PHG_EO_complete.csv")
+myfile3 = "https://raw.githubusercontent.com/rachreeb/Biostat_final/master/Aster_PHG_EO_complete.csv"
+phenotestc = read.csv(myfile3)
+
+
 
 ### full join student datasets
 phenotest = phenotesta %>%
@@ -158,13 +164,19 @@ detach(phenotest2_long)
 
 ```{r}
 logtest = glm(disagree_binary ~ phenophase + scientific_name, data = phenotest2_long, family = binomial(link="logit"))
-summary(logtest)
+capture.output(summary(logtest), file = "logmodel.txt")
 
-anova(logtest, test = "Chisq")
+anova_logtest = anova(logtest, test = "Chisq")
+
+
 ### anova comparing this model to a null model finds that phenophase and species were significantly different
+capture.output(anova_logtest,file="nulltest.txt")
+
 
 
 ```
+
+
 
 ## final frequency table of binary agreements
 ```{r}
@@ -189,6 +201,7 @@ table_pheno3
 
 # Final Figure
 
+### calculating means for each group
 ```{r}
 meangroup = phenotest2_long %>%
   dplyr::group_by(scientific_name, phenophase) %>%
@@ -202,8 +215,15 @@ meangroup = phenotest2_long %>%
 
 theme_set(theme_classic())
 
+jpeg("heatmap.jpeg")
+
 ggplot(meangroup, aes(phenophase, scientific_name, fill = meanagree)) + geom_tile(color = "white") +
-  scale_fill_gradient(limits = c(0,1), low="#feebe2", high="#c51b8a")
+  scale_fill_gradient(limits = c(0,1), low="#feebe2", high="#c51b8a") + labs(fill = "Mean Disagreement") + xlab ( "Phenology Category") + ylab ("Species") + theme(
+           axis.text.x  = element_text(angle=90, vjust=0.5, size=12)) + scale_x_discrete(labels = c("Whole Image?", "Leaves?", "Flowers?", "Open flowers?", "Fruits?", "Ripe Fruit?"))
+
+
+dev.off()
+
 
 
 ```
